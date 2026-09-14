@@ -57,8 +57,33 @@ def cn_to_int(s: str) -> int:
     return total + section
 
 # 条文标题支持两种写法：旧式 **第X条** 与 带内容哈希的新式 **第X条#hash**
-ART_RE = re.compile(r'^\*\*(第[一二三四五六七八九十百零\d]+条)(?:#([0-9a-f]{8}))?\*\*')
+# 并支持插入式编号：**第十二条之一#hash**（之X 后缀作为编号的小数部分，如 12.1）
+ART_RE = re.compile(r'^\*\*(第[一二三四五六七八九十百零\d]+条)(之[一二三四五六七八九十]+)?(?:#([0-9a-f]{8}))?\*\*')
 CHAP_RE = re.compile(r'^##\s+(.+?)\s*$')
+
+# 插入式后缀「之一/之二」→ 小数偏移
+_CN_ORD = {'一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
+           '六': 6, '七': 7, '八': 8, '九': 9, '十': 10}
+
+
+def suffix_offset(sfx: str | None) -> float:
+    """'之一' -> 0.1；'之二' -> 0.2；None -> 0.0"""
+    if not sfx:
+        return 0.0
+    s = sfx.lstrip('之')
+    if not s:
+        return 0.0
+    if s in _CN_ORD:
+        return _CN_ORD[s] / 10
+    return 0.0
+
+
+def fmt_num(base: int, sfx: str | None) -> str:
+    """生成存储用编号：无后缀→'12'；有后缀→'12.1'（字符串，兼容既有整数行）"""
+    off = suffix_offset(sfx)
+    if off == 0.0:
+        return str(base)
+    return f"{base}.{int(round(off * 10))}"
 
 
 def parse_file(path: str):
@@ -97,10 +122,13 @@ def parse_file(path: str):
         if m_art:
             flush()
             cn = m_art.group(1)            # 第四十七条
-            hv = m_art.group(2)            # 8 位十六进制哈希，可能为 None
-            num = cn_to_int(re.search(r'第(.+)条', cn).group(1))
+            sfx = m_art.group(2)           # 之一 / 之二 / None
+            hv = m_art.group(3)            # 8 位十六进制哈希，可能为 None
+            base = cn_to_int(re.search(r'第(.+)条', cn).group(1))
+            num = fmt_num(base, sfx)
+            label = cn + (sfx or '')
             rest = line[m_art.end():].strip()
-            buf = (cn, num, hv, [rest] if rest else [])
+            buf = (label, num, hv, [rest] if rest else [])
             continue
         if buf is not None:
             buf[3].append(line)
@@ -173,7 +201,8 @@ def prune_db(db: sqlite3.Connection, rows, source: str, file_name: str, version:
     ).fetchall()
     removed = 0
     for eid, num, cn in orphan:
-        if num not in keep:
+        # 统一为字符串比较：数据库整数 12 -> '12'，插入式编号 12.1 -> '12.1'
+        if str(num) not in {str(k) for k in keep}:
             removed += 1
             print(f"  [{'DRY' if dry_run else '删除'}] {cn} (article_num={num}) [version={version}] — 源文件已无此编号")
             if not dry_run:
