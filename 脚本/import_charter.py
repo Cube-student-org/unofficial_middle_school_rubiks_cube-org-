@@ -12,7 +12,7 @@
   python3 import_charter.py 运营委员会临时细则.md --version 通俗
   python3 import_charter.py 魔方社临时章程.md --dry-run
   python3 import_charter.py 魔方社临时章程.md --prune   # 清理该版本孤儿行
-  说明：source 默认按文件名自动判定（含“细则”即细则，否则章程）；version 默认“严谨”。
+  说明：source 默认按文件名自动判定（目录判定，否则章程）；version 默认“严谨”。
 """
 
 import sqlite3
@@ -228,7 +228,7 @@ def main():
         source = args[i + 1]
         args = args[:i] + args[i + 2:]
     if not args:
-        print('用法: python3 import_charter.py <markdown文件> [--source 章程|细则] [--version 严谨|通俗] [--dry-run] [--prune]')
+        print('用法: python3 import_charter.py <markdown文件> [--source 章程|规则] [--version 严谨|通俗] [--dry-run] [--prune]')
         sys.exit(1)
     path = args[0]
     if not os.path.exists(path):
@@ -236,7 +236,13 @@ def main():
         sys.exit(1)
     file_name = os.path.basename(path)
     if source is None:
-        source = '细则' if '细则' in file_name else '章程'
+        # 按目录判定：…/章程/… → 章程；…/规则/…（及旧称"细则"）→ 规则
+        if f'{os.sep}章程{os.sep}' in path:
+            source = '章程'
+        elif f'{os.sep}规则{os.sep}' in path or '细则' in file_name:
+            source = '规则'
+        else:
+            source = '章程'
     if version is None:  # 文件名含“通俗版/严谨版”后缀时自动判定版本
         if '通俗' in file_name:
             version = '通俗'
