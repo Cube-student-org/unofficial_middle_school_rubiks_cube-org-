@@ -12,7 +12,7 @@
   - 非破坏式：只改写编号，条文内容原样保留
 
 用法：
-  python3 renumber_articles.py 文档/规范性文件/xssz魔方非官方组织临时章程.md
+  python3 renumber_articles.py 文档/规范性文件/xssz魔方社临时章程.md
   python3 renumber_articles.py 某细则.md --dry-run
 """
 
