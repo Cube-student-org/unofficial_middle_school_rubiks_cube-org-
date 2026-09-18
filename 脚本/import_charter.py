@@ -7,11 +7,11 @@
   - 仅更新在文件中出现过的条文；未出现在文件中的旧条文原样保留
 
 用法：
-  python3 import_charter.py xssz魔方社临时章程.md
+  python3 import_charter.py 魔方社临时章程.md
   python3 import_charter.py 运营委员会临时细则.md --source 细则
   python3 import_charter.py 运营委员会临时细则.md --version 通俗
-  python3 import_charter.py xssz魔方社临时章程.md --dry-run
-  python3 import_charter.py xssz魔方社临时章程.md --prune   # 清理该版本孤儿行
+  python3 import_charter.py 魔方社临时章程.md --dry-run
+  python3 import_charter.py 魔方社临时章程.md --prune   # 清理该版本孤儿行
   说明：source 默认按文件名自动判定（含“细则”即细则，否则章程）；version 默认“严谨”。
 """
 
