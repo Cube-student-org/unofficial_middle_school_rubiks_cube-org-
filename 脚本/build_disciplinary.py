@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""违规处罚细则管理工具：建表、增/改、删、查。
+"""违规处罚规则管理工具：建表、增/改、删、查。
 
 用法：
   python3 build_disciplinary.py              # 同步全部初始规则（首次建表 + upsert）
@@ -165,7 +165,7 @@ INITIAL_RULES = [
          procedure='主持人当场制止→记录在案→会后常任委员会确认→下达书面处分',
          appeal_body='监察委员会', appeal_deadline='收到处分决定后7日内',
          charter_basis='第十六条第二项',
-         notes='具体标准由细则进一步明确'),
+         notes='具体标准由《处罚》规则进一步明确'),
 
     dict(category='妨碍组织运作',
          behavior='退出组织时拒不完成必要的工作交接',
@@ -291,7 +291,7 @@ INITIAL_RULES = [
 
     # ── 兜底 ──
     dict(category='其他严重违规',
-         behavior='其他虽未在细则中列明，但经常任委员会认定严重违反本章程的行为',
+         behavior='其他虽未在《处罚》规则中列明，但经常任委员会认定严重违反本章程的行为',
          severity='中度', penalty_type='限制权利',
          penalty_detail='根据行为性质和后果裁量', penalty_duration='不超过一学期',
          deciding_body='常任委员会',

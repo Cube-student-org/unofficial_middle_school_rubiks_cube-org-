@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""从数据库导出章程/细则为 Markdown，保留多行格式。
+"""从数据库导出章程/规则为 Markdown，保留多行格式。
 
 用法：
   python3 export_charter.py                          # 导出「章程」
-  python3 export_charter.py 细则                       # 导出全部细则（多文件合并）
-  python3 export_charter.py 运营委员会临时细则           # 按文件名导出单个细则
+  python3 export_charter.py 规则                       # 导出全部规则（多文件合并）
+  python3 export_charter.py 机构运行                   # 按文件名导出单个规则
   python3 export_charter.py 章程 out.md                # 指定输出文件名
   python3 export_charter.py 章程 out.md --force         # 强制覆盖已存在的文件
-  python3 export_charter.py 细则 -                     # 输出到标准输出
+  python3 export_charter.py 规则 -                     # 输出到标准输出
   python3 export_charter.py --list                     # 列出数据库中所有可导出的文件
 
 时间戳检验：
@@ -59,8 +59,10 @@ def build_markdown_merged(db: sqlite3.Connection, source: str) -> str:
     for (fname,) in files:
         result = build_markdown_by_file(db, fname, source)
         if result:
-            # 去掉首行标题，追加内容
-            lines.append(result.split('\n', 1)[1] if '\n' in result else result)
+            # 去掉首行标题，补上该文件标题后追加内容
+            body = result.split('\n', 1)[1] if '\n' in result else result
+            lines.append(f'\n## {fname}\n')
+            lines.append(body)
     return '\n'.join(lines)
 
 def export(source: str, outfile=None, force: bool = False):
@@ -73,8 +75,10 @@ def export(source: str, outfile=None, force: bool = False):
     ).fetchone()[0] > 0
 
     if is_file:
-        # 由文件名判定来源：含「细则」即为细则，否则为章程（不可仅按 .md 后缀判断）
-        src = '细则' if '细则' in source else '章程'
+        # 由数据库记录判定来源，避免误判（不可仅按 .md 后缀判断）
+        src = db.execute(
+            "SELECT source FROM articles WHERE file_name=? LIMIT 1", (source,)
+        ).fetchone()[0]
         result = build_markdown_by_file(db, source, src)
     else:
         result = build_markdown_merged(db, source)

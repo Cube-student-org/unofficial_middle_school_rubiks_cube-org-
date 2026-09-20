@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""从 Markdown 章程/细则文件 UPSERT（非破坏性推送）到 charter.db。
+"""从 Markdown 章程/规则文件 UPSERT（非破坏性推送）到 charter.db。
 
 设计原则（区别于已删除的 rebuild_db.py）：
   - 绝不 DROP / 删除任何表或行
@@ -7,12 +7,12 @@
   - 仅更新在文件中出现过的条文；未出现在文件中的旧条文原样保留
 
 用法：
-  python3 import_charter.py 魔方社临时章程.md
-  python3 import_charter.py 运营委员会临时细则.md --source 细则
-  python3 import_charter.py 运营委员会临时细则.md --version 通俗
-  python3 import_charter.py 魔方社临时章程.md --dry-run
-  python3 import_charter.py 魔方社临时章程.md --prune   # 清理该版本孤儿行
-  说明：source 默认按文件名自动判定（目录判定，否则章程）；version 默认“严谨”。
+  python3 import_charter.py 章程-严谨版.md
+  python3 import_charter.py 机构运行-严谨版.md --source 规则
+  python3 import_charter.py 机构运行-通俗版.md --version 通俗
+  python3 import_charter.py 章程-严谨版.md --dry-run
+  python3 import_charter.py 章程-严谨版.md --prune   # 清理该版本孤儿行
+  说明：source 默认按所在目录自动判定（…/章程/… → 章程，…/规则/… → 规则）；version 默认“严谨”。
 """
 
 import sqlite3
@@ -236,11 +236,11 @@ def main():
         sys.exit(1)
     file_name = os.path.basename(path)
     if source is None:
-        # 按目录判定：…/章程/… → 章程；…/规则/…（及旧称"细则"）→ 规则
+        # 按目录判定：…/章程/… → 章程；…/规则/… → 规则
         apath = os.path.abspath(path)
         if f'{os.sep}章程{os.sep}' in apath:
             source = '章程'
-        elif f'{os.sep}规则{os.sep}' in apath or '细则' in file_name:
+        elif f'{os.sep}规则{os.sep}' in apath:
             source = '规则'
         else:
             source = '章程'

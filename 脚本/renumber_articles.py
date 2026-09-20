@@ -12,8 +12,8 @@
   - 非破坏式：只改写编号，条文内容原样保留
 
 用法：
-  python3 renumber_articles.py 文档/规范性文件/魔方社临时章程.md
-  python3 renumber_articles.py 某细则.md --dry-run
+  python3 renumber_articles.py 文档/规范性文件/章程/严谨/章程-严谨版.md
+  python3 renumber_articles.py 文档/规范性文件/规则/严谨/机构运行-严谨版.md --dry-run
 """
 
 import re
