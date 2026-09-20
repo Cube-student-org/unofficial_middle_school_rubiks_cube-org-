@@ -237,9 +237,10 @@ def main():
     file_name = os.path.basename(path)
     if source is None:
         # 按目录判定：…/章程/… → 章程；…/规则/…（及旧称"细则"）→ 规则
-        if f'{os.sep}章程{os.sep}' in path:
+        apath = os.path.abspath(path)
+        if f'{os.sep}章程{os.sep}' in apath:
             source = '章程'
-        elif f'{os.sep}规则{os.sep}' in path or '细则' in file_name:
+        elif f'{os.sep}规则{os.sep}' in apath or '细则' in file_name:
             source = '规则'
         else:
             source = '章程'
