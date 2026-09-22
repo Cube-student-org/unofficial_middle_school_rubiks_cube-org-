@@ -3,6 +3,7 @@
 
 用法：
   python3 build_disciplinary.py              # 同步全部初始规则（首次建表 + upsert）
+  python3 build_disciplinary.py --rebuild    # 清空后按初始规则全量重建（id 从 1 连续编号）
   python3 build_disciplinary.py --list       # 列出全部规则
   python3 build_disciplinary.py --delete 3   # 删除 id=3 的规则
   python3 build_disciplinary.py --add '{"category":"...","behavior":"...",...}'
@@ -115,7 +116,7 @@ INITIAL_RULES = [
 
     # ── 泄露成员隐私 ──
     dict(category='泄露成员隐私',
-         behavior='泄露其他成员的隐私信息（真实姓名、手机号、家庭住址、照片等）；或泄露成员账号找回凭证之哈希值及服务端盐值、将其与真实身份关联、将其用于账号找回与系统通知以外之目的；或在账号找回流程中截留、留存、外传成员邮箱原文',
+         behavior='泄露其他成员的隐私信息（真实姓名、手机号、家庭住址、照片等）；或将成员账号找回所用之哈希值及校验信息与真实身份关联、将其用于账号找回与系统通知以外之目的；或留存、外传成员邮箱原文',
          severity='中度', penalty_type='限制权利',
          penalty_detail='暂停投票权、选举权与被选举权', penalty_duration='一学期',
          deciding_body='纪律调查委员会调查，审裁委员会审理',
@@ -322,6 +323,16 @@ if __name__ == '__main__':
             upsert_rule(db, rule)
         db.commit()
         print('✅ 已同步初始规则')
+        print_summary(db)
+
+    elif sys.argv[1] == '--rebuild':
+        # 全量重建：清空后按初始规则顺序插入，id 从 1 连续编号
+        db.execute('DELETE FROM disciplinary_rules')
+        db.execute("DELETE FROM sqlite_sequence WHERE name='disciplinary_rules'")
+        for rule in INITIAL_RULES:
+            upsert_rule(db, rule)
+        db.commit()
+        print(f'✅ 已全量重建：{len(INITIAL_RULES)} 条规则')
         print_summary(db)
 
     elif sys.argv[1] == '--list':
