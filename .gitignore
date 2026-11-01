@@ -1,1 +1,7 @@
 __pycache__/
+
+# SQLite 查询缓存：由 脚本/ensure_db.py 从 Markdown 源重建，不入版本控制
+charter.db
+charter.db.tmp
+*.db-journal
+*.db-wal

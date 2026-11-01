@@ -55,8 +55,9 @@
 ```
 仓库根/
 ├── README.md                  本文件
-├── charter.db                 SQLite 数据库（条文与处罚规则）
+├── charter.db                 本地 SQLite 查询缓存（不入版本控制，可随时重建）
 ├── 脚本/                       数据库同步与维护工具
+│   ├── ensure_db.py           按源指纹按需重建 charter.db（源未变则跳过）
 │   ├── import_charter.py      从 Markdown 非破坏性推送（UPSERT）到 charter.db
 │   ├── export_charter.py      从 charter.db 导出 Markdown（带时间戳防覆盖）
 │   ├── build_disciplinary.py  违规处罚规则管理（建表 / 增改删查）
@@ -145,6 +146,18 @@
 - **对照使用**：两版对应条文编号一致、哈希一致，可逐条对照。查阅时建议以**通俗版**理解含义、以**严谨版**确定权责边界。
 
 数据库 `charter.db` 的 `articles` 表通过 `version` 标签（`严谨` / `通俗`）区分两版；同一文件的同一条文在两版中编号一致、哈希一致。
+
+### 数据库缓存
+
+`charter.db` 是**可丢弃、可重建的查询缓存**，不是数据源，也不纳入版本控制。权威源是 `文档/规范性文件/` 下的 Markdown：
+
+```bash
+python3 脚本/ensure_db.py            # 检查源指纹：未变化则跳过，变化则全量重建
+python3 脚本/ensure_db.py --status   # 只报告缓存状态
+python3 脚本/ensure_db.py --force    # 强制重建
+```
+
+缓存是否有效由 **SHA-256 源指纹**判定，指纹覆盖源文件路径、内容以及构建脚本本身；构建采用「先写 `.tmp`、成功后原子替换」，中断不会留下半成品。这样既保留 SQLite 的哈希索引、`UNIQUE` 约束与查询能力，又避免二进制快照持续进入 git 历史（此前 90 个历史版本曾占 4.53 MiB）。
 
 ## 条文唯一编号（内容哈希）
 

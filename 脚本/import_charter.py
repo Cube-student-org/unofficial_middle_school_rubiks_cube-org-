@@ -78,12 +78,16 @@ def suffix_offset(sfx: str | None) -> float:
     return 0.0
 
 
-def fmt_num(base: int, sfx: str | None) -> str:
-    """生成存储用编号：无后缀→'12'；有后缀→'12.1'（字符串，兼容既有整数行）"""
+def fmt_num(base: int, sfx: str | None):
+    """生成存储用编号：无后缀→int；有后缀→float（如 12.1）。
+
+    保持与既有库一致的存储类型（INTEGER / REAL），避免 UPSERT 时
+    TEXT '1' 与 INTEGER 1 比较不相等而重复插入。
+    """
     off = suffix_offset(sfx)
     if off == 0.0:
-        return str(base)
-    return f"{base}.{int(round(off * 10))}"
+        return base
+    return round(base + off, 1)
 
 
 def parse_file(path: str):
@@ -145,7 +149,8 @@ def ensure_schema(db: sqlite3.Connection):
         db.commit()
 
 
-def upsert(db: sqlite3.Connection, rows, source: str, file_name: str, version: str, dry_run: bool):
+def upsert(db: sqlite3.Connection, rows, source: str, file_name: str, version: str,
+           dry_run: bool, quiet: bool = False):
     cur = db.cursor()
     stats = {'insert': 0, 'update': 0, 'unchanged': 0}
     for chapter, num, cn, hv, content in rows:
@@ -161,7 +166,8 @@ def upsert(db: sqlite3.Connection, rows, source: str, file_name: str, version: s
                     (source, chapter, num, cn, content, hv, file_name, version)
                 )
             stats['insert'] += 1
-            print(f"  [{'DRY' if dry_run else '新增'}] {cn} (chapter={chapter}) [version={version}]")
+            if not quiet:
+                print(f"  [{'DRY' if dry_run else '新增'}] {cn} (chapter={chapter}) [version={version}]")
         else:
             eid, echap, econtent, ehash = existing
             if econtent == content and echap == chapter and ehash == hv:
@@ -173,14 +179,15 @@ def upsert(db: sqlite3.Connection, rows, source: str, file_name: str, version: s
                         (chapter, content, hv, eid)
                     )
                 stats['update'] += 1
-                changed = []
-                if echap != chapter:
-                    changed.append(f'chapter: {echap!r} -> {chapter!r}')
-                if econtent != content:
-                    changed.append('content: 已更新')
-                if ehash != hv:
-                    changed.append('hash: 已补/更新')
-                print(f"  [{'DRY' if dry_run else '更新'}] {cn} ({'; '.join(changed)}) [version={version}]")
+                if not quiet:
+                    changed = []
+                    if echap != chapter:
+                        changed.append(f'chapter: {echap!r} -> {chapter!r}')
+                    if econtent != content:
+                        changed.append('content: 已更新')
+                    if ehash != hv:
+                        changed.append('hash: 已补/更新')
+                    print(f"  [{'DRY' if dry_run else '更新'}] {cn} ({'; '.join(changed)}) [version={version}]")
     if not dry_run:
         db.commit()
     return stats
@@ -254,6 +261,12 @@ def main():
 
     rows = parse_file(path)
     print(f'📄 解析 {file_name}（source={source}, version={version}）：共 {len(rows)} 条')
+
+    # 缓存不存在时先按全部 Markdown 源构建（延迟导入，避免循环依赖）
+    if not os.path.exists(DB_PATH):
+        print('ℹ️  charter.db 缓存不存在，先按 Markdown 源构建…')
+        import ensure_db
+        ensure_db.main()
 
     db = sqlite3.connect(DB_PATH)
     ensure_schema(db)
